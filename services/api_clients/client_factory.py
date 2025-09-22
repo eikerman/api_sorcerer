@@ -1,4 +1,3 @@
-# infrastructure/api_clients/client_factory.py
 from typing import Dict, List, Type
 from services.api_clients.base.news_api_client import INewsApiClient
 from services.api_clients.newsapi_org.newsapi_client import NewsApiClient

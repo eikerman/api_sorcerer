@@ -8,7 +8,9 @@ class ApiClientConfig:
     is_enabled: bool
     api_key: str
     base_url: str
-    rate_limit: Optional[int] = None
+    requests_per_second: Optional[int]
+    requests_per_day: Optional[int]
+    requests_per_month: int
     timeout: Optional[int] = 30
     additional_params: Optional[Dict[str, Any]] = None
 
@@ -28,9 +30,10 @@ class ConfigManager:
             is_enabled=config_data.get('enabled', False),
             api_key=config_data.get('api_key', ''),
             base_url=config_data.get('base_url', ''),
-            rate_limit=config_data.get('rate_limit'),
+            requests_per_second=config_data.get('requests_per_second'),
+            requests_per_day=config_data.get('requests_per_day'),
+            requests_per_month=config_data.get('requests_per_month'),
             timeout=config_data.get('timeout', 30),
-            additional_params=config_data.get('additional_params', {})
         )
 
     def enable_provider(self, provider_id: str):
