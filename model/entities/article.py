@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 from model.value_objects.article_id import ArticleId
 from model.value_objects.url import Url
-from model.value_objects.published_date import PublishedDate
+from model.value_objects.publish_date import PublishedDate
 
 @dataclass(frozen=True)
 class Article:

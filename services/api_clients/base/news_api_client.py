@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Any
-from datetime import datetime
+from model.entities.article import Article
 import httpx
 import logging
 from typing import List, Dict, Any
@@ -17,7 +16,7 @@ class INewsApiClient(ABC):
         pass
 
     @abstractmethod
-    async def fetch_articles(self, criteria: 'FetchCriteria') -> List[Article]:
+    async def fetch_articles(self, criteria: 'FetchCriteria') -> List['Article']:
         pass
 
     @abstractmethod
@@ -30,6 +29,7 @@ class BaseNewsApiClient(INewsApiClient):
     def __init__(self, config: 'ApiClientConfig', mapper: 'BaseMapper'):
         self._config = config
         self._mapper = mapper
+        self._rate_limiter = rate_limiter
         self._logger = logging.getLogger(self.__class__.__name__)
         self._client = httpx.AsyncClient(timeout=30.0)
 
