@@ -39,13 +39,6 @@ async def main():
         print(f"    Daily: {usage.get('daily_count')} / {usage.get('daily_remaining', 'unlimited')}")
         print(f"    Monthly: {usage.get('monthly_count')} / {usage.get('monthly_remaining', 'unlimited')}")
 
-    # Export source URLs
-    sources = await repo.get_unique_source_urls()
-    with open('source_urls.txt', 'w') as f:
-        for url in sources:
-            f.write(url + '\n')
-    print(f"\nExported {len(sources)} unique source URLs to source_urls.txt")
-
     # Cleanup
     await service.cleanup()
     await repo.close()
