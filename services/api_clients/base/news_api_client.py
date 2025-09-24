@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from model.entities.article import Article
-from services.api_clients.base.usage_tracking import ApiUsageTracker
+from services.api_clients.usage_tracking import ApiUsageTracker
+from services.api_clients.client_registry import ApiClientRegistry
 import httpx
 import logging
 import time
@@ -30,13 +31,16 @@ class INewsApiClient(ABC):
 
 
 class BaseNewsApiClient(INewsApiClient):
-    def __init__(self, config: 'ApiClientConfig', mapper: 'BaseMapper'):
+    def __init__(self, config: 'ApiClientConfig', mapper: 'BaseMapper', registry: ApiClientRegistry):
         self._config = config
+        self._registry = registry
         self._mapper = mapper
         self._request_times = deque()
         self._usage_tracker = ApiUsageTracker(self.provider_id)
         self._logger = logging.getLogger(self.__class__.__name__)
         self._client = httpx.AsyncClient(timeout=config.timeout)
+
+        self._registry.register_client(self, config, self._usage_tracker)
 
     @property
     def is_enabled(self) -> bool:
@@ -82,6 +86,10 @@ class BaseNewsApiClient(INewsApiClient):
     async def fetch_articles(self, criteria: 'FetchCriteria') -> List[Article]:
         if not self.is_enabled:
             self._logger.info(f"{self.provider_id} is disabled, skipping fetch")
+            return []
+
+        if self._registry and self._registry.get_client(self.provider_id) is None:
+            self._logger.warning(f"{self.provider_id} has been deregistered fro safety")
             return []
 
         if not self._can_make_request():

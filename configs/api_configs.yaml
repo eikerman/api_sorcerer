@@ -1,0 +1,12 @@
+apis:
+  newsapi:
+    enabled: true
+    api_key: "${NEWSAPI_API_KEY}"  # Still use env vars for secrets
+    base_url: "https://newsapi.org/v2"
+    rate_limits:
+      requests_per_second: 5
+      requests_per_day: 10
+      requests_per_month: 2000
+    timeout: 30
+    max_total_requests: 2000 # optional can be none
+    hard_stop_date: 2025-10-30 # optional can be none

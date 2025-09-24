@@ -11,8 +11,10 @@ class ApiClientConfig:
     requests_per_second: Optional[int]
     requests_per_day: Optional[int]
     requests_per_month: int
+    hard_stop_date: Optional[str]
+    max_total_requests: Optional[int]
     timeout: Optional[int] = 30
-    additional_params: Optional[Dict[str, Any]] = None
+
 
 
 class ConfigManager:
@@ -34,6 +36,8 @@ class ConfigManager:
             requests_per_day=config_data.get('requests_per_day'),
             requests_per_month=config_data.get('requests_per_month'),
             timeout=config_data.get('timeout', 30),
+            hard_stop_date=config_data.get('hard_stop_date'),
+            max_total_requests=config_data.get('max_total_requests')
         )
 
     def enable_provider(self, provider_id: str):
