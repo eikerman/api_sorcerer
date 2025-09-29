@@ -11,11 +11,14 @@ class ApiConfig:
     api_key: str
     base_url: str
     timeout: int = 30
+    real_month: bool = False # if the api is billed every 30 days and not monthly, set this to false
 
     # Rate limits
     requests_per_second: Optional[int] = None
     requests_per_day: Optional[int] = None
     requests_per_month: Optional[int] = None
+
+
 
     # Safety limits
     max_total_requests: Optional[int] = None

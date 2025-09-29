@@ -2,9 +2,13 @@ import asyncio
 import time
 from collections import deque
 from typing import Dict, Any
+import calendar
 import json
 from pathlib import Path
 from datetime import date
+
+class LoadUsageException(Exception):
+
 
 class RateLimiter:
     """Simple rate limiter with persistent usage tracking"""
@@ -28,11 +32,10 @@ class RateLimiter:
             try:
                 with open(self.usage_file, 'r') as f:
                     data = json.load(f)
-                    # Reset counters if needed
                     self._reset_counters_if_needed(data)
                     return data
-            except:
-                pass
+            except IOError as e:
+
 
         return {
             "daily_count": 0,
@@ -59,6 +62,26 @@ class RateLimiter:
         """Persist usage data"""
         with open(self.usage_file, 'w') as f:
             json.dump(self._usage_data, f, indent=2)
+
+    def _calculate_daily_budget_from_monthly(self) -> int:
+        """Calculate daily budget to evenly distribute monthly quota"""
+        if not self.config.requests_per_month:
+            return None
+
+        if self.config.real_month:
+
+            today = date.today()
+            days_in_month = calendar.monthrange(today.year, today.month)[1]
+
+        # Calculate remaining budget for the rest of the month
+        remaining_monthly = self.config.requests_per_month - self._usage_data["monthly_count"]
+        days_remaining = days_in_month - today.day + 1
+
+        # Distribute remaining quota evenly over remaining days
+        if days_remaining > 0:
+            return max(0, remaining_monthly // days_remaining)
+
+        return 0
 
     async def check_and_wait(self) -> bool:
         """
