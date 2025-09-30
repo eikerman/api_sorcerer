@@ -6,9 +6,9 @@ import calendar
 import json
 from pathlib import Path
 from datetime import date
-
-class LoadUsageException(Exception):
-
+import logging
+from services.base.time_service import today
+logger = logging.getLogger(__name__)
 
 class RateLimiter:
     """Simple rate limiter with persistent usage tracking"""
@@ -35,6 +35,8 @@ class RateLimiter:
                     self._reset_counters_if_needed(data)
                     return data
             except IOError as e:
+                logging.warning(f'Cannot open usage file {self.usage_file}, this is only a problem if'
+                                f'this file is expected to exist and it is not the first time running the system')
 
 
         return {
@@ -45,14 +47,15 @@ class RateLimiter:
             "last_monthly_reset": date.today().strftime("%Y-%m")
         }
 
-    def _reset_counters_if_needed(self, data: Dict[str, Any]):
+    @staticmethod
+    def _reset_counters_if_needed(data: Dict[str, Any]):
         """Reset daily/monthly counters if date boundaries crossed"""
-        today = date.today()
-        current_month = today.strftime("%Y-%m")
+        current_day = date.today()
+        current_month = today().strftime("%Y-%m")
 
-        if data["last_daily_reset"] != today.isoformat():
+        if data["last_daily_reset"] != today().isoformat():
             data["daily_count"] = 0
-            data["last_daily_reset"] = today.isoformat()
+            data["last_daily_reset"] = today().isoformat()
 
         if data["last_monthly_reset"] != current_month:
             data["monthly_count"] = 0
@@ -66,22 +69,32 @@ class RateLimiter:
     def _calculate_daily_budget_from_monthly(self) -> int:
         """Calculate daily budget to evenly distribute monthly quota"""
         if not self.config.requests_per_month:
-            return None
+            logger.error(f'{self.provider_id} request per month are set to 0. If this is an active provider, this'
+                         f'should be a non-zero amount')
+            return 0
 
-        if self.config.real_month:
-
-            today = date.today()
-            days_in_month = calendar.monthrange(today.year, today.month)[1]
+        current_date = today()
+        days_in_month = calendar.monthrange(current_date.year, current_date.month)[1]
 
         # Calculate remaining budget for the rest of the month
         remaining_monthly = self.config.requests_per_month - self._usage_data["monthly_count"]
-        days_remaining = days_in_month - today.day + 1
+        days_remaining = days_in_month - current_date.day + 1
 
-        # Distribute remaining quota evenly over remaining days
         if days_remaining > 0:
             return max(0, remaining_monthly // days_remaining)
 
         return 0
+
+    def _in_within_paced_limit(self) -> bool:
+
+        daily_budget = self._calculate_daily_budget_from_monthly()
+
+        current_daily_usage = self._usage_data['daily_count']
+
+        if current_daily_usage >= daily_budget:
+            return False
+
+        return True
 
     async def check_and_wait(self) -> bool:
         """
@@ -90,23 +103,23 @@ class RateLimiter:
         """
         # Check safety limits
         if self.config.is_expired():
-            print(f"{self.provider_id}: Hard stop date reached")
+            logger.info(f"{self.provider_id}: Hard stop date reached")
             return False
 
         if self.config.max_total_requests:
             if self._usage_data["total_count"] >= self.config.max_total_requests:
-                print(f"{self.provider_id}: Max total requests reached")
+                logger.info(f"{self.provider_id}: Max total requests reached")
                 return False
 
         # Check daily/monthly limits
         if self.config.requests_per_day:
             if self._usage_data["daily_count"] >= self.config.requests_per_day:
-                print(f"{self.provider_id}: Daily limit reached")
+                logger.info(f"{self.provider_id}: Daily limit reached")
                 return False
 
         if self.config.requests_per_month:
             if self._usage_data["monthly_count"] >= self.config.requests_per_month:
-                print(f"{self.provider_id}: Monthly limit reached")
+                logger.info(f"{self.provider_id}: Monthly limit reached")
                 return False
 
         # Handle burst limiting (per second)
@@ -146,12 +159,12 @@ class RateLimiter:
 
         # Add remaining quotas
         if self.config.requests_per_day:
-            stats["daily_remaining"] = max(0, self.config.requests_per_day - self._usage_data["daily_count"])
+            stats["daily_remaining"] = self.config.requests_per_day - self._usage_data["daily_count"]
 
         if self.config.requests_per_month:
-            stats["monthly_remaining"] = max(0, self.config.requests_per_month - self._usage_data["monthly_count"])
+            stats["monthly_remaining"] = self.config.requests_per_month - self._usage_data["monthly_count"]
 
         if self.config.max_total_requests:
-            stats["total_remaining"] = max(0, self.config.max_total_requests - self._usage_data["total_count"])
+            stats["total_remaining"] = self.config.max_total_requests - self._usage_data["total_count"]
 
         return stats
