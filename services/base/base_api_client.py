@@ -15,12 +15,12 @@ class BaseNewsApiClient(ABC):
     def __init__(self, config: ApiConfig, mapper: BaseMapper):
         self.config = config
         self.mapper = mapper
-        self.rate_limiter = RateLimiter(config.provider_id, config)
+        self._rate_limiter = RateLimiter(config.provider_id, config)
         self._client = None
 
     @property
     @abstractmethod
-    def provider_name(self) -> str:
+    def provider_id(self) -> str:
         pass
 
     @abstractmethod
@@ -34,9 +34,9 @@ class BaseNewsApiClient(ABC):
             return []
 
         # Check rate limits
-        can_proceed = await self.rate_limiter.check_and_wait()
+        can_proceed = await self._rate_limiter.check_and_wait()
         if not can_proceed:
-            print(f"Skipping {self.provider_name} due to rate limits")
+            print(f"Skipping {self.provider_id} due to rate limits")
             return []
 
         try:
@@ -50,7 +50,7 @@ class BaseNewsApiClient(ABC):
             response.raise_for_status()
 
             # Record successful request
-            self.rate_limiter.record_request()
+            self._rate_limiter.record_request()
 
             # Map response to articles
             articles = self.mapper.map_to_articles(
@@ -72,4 +72,4 @@ class BaseNewsApiClient(ABC):
 
     def get_usage_stats(self) -> Dict[str, Any]:
         """Get usage statistics"""
-        return self.rate_limiter.get_usage_stats()
+        return self._rate_limiter.get_usage_stats()

@@ -37,7 +37,7 @@ class ArticleService:
         """Get usage statistics for all clients"""
         stats = {}
         for client in self.clients:
-            stats[client.provider_name] = client.get_usage_stats()
+            stats[client.provider_id] = client.get_usage_stats()
         return stats
 
     async def cleanup(self):

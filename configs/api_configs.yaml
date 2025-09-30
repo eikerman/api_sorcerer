@@ -5,7 +5,7 @@ apis:
     base_url: "https://newsapi.org/v2"
     rate_limits:
       requests_per_second: 5
-      requests_per_day: 10
+      requests_per_day: 100
       requests_per_month: 2000
     timeout: 30
     max_total_requests: 2000 # optional can be none
