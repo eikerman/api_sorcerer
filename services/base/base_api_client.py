@@ -1,8 +1,8 @@
-# services/api_client.py
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
+
 import httpx
-from datetime import datetime
+
 from model.article import Article
 from configs.api_config import ApiConfig
 from services.base.rate_limiter import RateLimiter
@@ -13,10 +13,10 @@ class BaseNewsApiClient(ABC):
     """Base client for all news APIs"""
 
     def __init__(self, config: ApiConfig, mapper: BaseMapper):
-        self.config = config
-        self.mapper = mapper
+        self._config = config
+        self._mapper = mapper
         self._rate_limiter = RateLimiter(config.provider_id, config)
-        self._client = None
+        self._client = httpx.AsyncClient(timeout=config.timeout)
 
     @property
     @abstractmethod
@@ -24,46 +24,8 @@ class BaseNewsApiClient(ABC):
         pass
 
     @abstractmethod
-    async def build_request_url(self, query: str, from_date: Optional[datetime]) -> str:
-        """Build the API request URL"""
+    async def fetch_articles(self, query: str) -> List[Article]:
         pass
-
-    async def fetch_articles(self, query: str, from_date: Optional[datetime] = None) -> List[Article]:
-        """Fetch articles from the API with rate limiting"""
-        if not self.config.enabled:
-            return []
-
-        # Check rate limits
-        can_proceed = await self._rate_limiter.check_and_wait()
-        if not can_proceed:
-            print(f"Skipping {self.provider_id} due to rate limits")
-            return []
-
-        try:
-            url = await self.build_request_url(query, from_date)
-
-            # Make request
-            if not self._client:
-                self._client = httpx.AsyncClient(timeout=self.config.timeout)
-
-            response = await self._client.get(url)
-            response.raise_for_status()
-
-            # Record successful request
-            self._rate_limiter.record_request()
-
-            # Map response to articles
-            articles = self.mapper.map_to_articles(
-                response.json(),
-                self.provider_name
-            )
-
-            print(f"Fetched {len(articles)} articles from {self.provider_name}")
-            return articles
-
-        except Exception as e:
-            print(f"Error fetching from {self.provider_name}: {e}")
-            return []
 
     async def close(self):
         """Close HTTP client"""

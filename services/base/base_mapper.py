@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
 from model.article import Article
+import logging
 
+logger = logging.getLogger(__name__)
 
 class BaseMapper(ABC):
     """Base mapper for converting API responses to domain models"""
@@ -22,7 +24,7 @@ class BaseMapper(ABC):
                 if article:
                     articles.append(article)
             except Exception as e:
-                print(f"Error mapping article: {e}")
+                logger.warning(f"Error mapping article: {e}")
                 continue
 
         return articles

@@ -1,11 +1,13 @@
 # services/newsapi_client.py
-from typing import Optional, override
 from datetime import datetime, timedelta
 from model.article import Article
 from typing import List
 import httpx
 from urllib.parse import urlencode
 from services.base.base_api_client import BaseNewsApiClient
+from services.base.base_mapper import BaseMapper
+from services.base.time_service import now
+from configs.api_config import ApiConfig
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,45 +19,33 @@ class NewsApiClient(BaseNewsApiClient):
     Fetches ALL available articles with automatic pagination.
     """
 
+    def __init__(self, config: ApiConfig, mapper: BaseMapper):
+        super().__init__(config, mapper)
+        self._client = httpx.AsyncClient(timeout=self._config.timeout)
+
     @property
     def provider_id(self) -> str:
         return "newsapi.org"
 
-    async def fetch_all_articles(
-            self,
-            from_date: Optional[datetime] = None,
-            to_date: Optional[datetime] = None,
-            max_results: Optional[int] = None
-    ) -> List[Article]:
+    async def fetch_articles(self, query: str) -> List[Article]:
         """
         Fetch all articles with automatic pagination.
 
         Args:
-            from_date: Start date (defaults to 24 hours ago)
-            to_date: End date (defaults to now)
-            max_results: Maximum total results to fetch (None = fetch all available)
 
         Returns:
             List of all articles across all pages
         """
         # Default date range: last 24 hours
-        if from_date is None:
-            from_date = datetime.now() - timedelta(hours=24)
-        if to_date is None:
-            to_date = datetime.now()
+        from_date = now() - timedelta(hours=24)
+        to_date = now()
 
         all_articles = []
         page = 1
         page_size = 100  # Maximum allowed by NewsAPI
 
         while True:
-            # Check if we should stop due to max_results
-            if max_results and len(all_articles) >= max_results:
-                logger.info(f"Reached max_results limit: {max_results}")
-                break
-
-            # Build URL for current page
-            url = self._build_url(
+            url = self._build_request_url(
                 page=page,
                 page_size=page_size,
                 from_date=from_date,
@@ -69,7 +59,6 @@ class NewsApiClient(BaseNewsApiClient):
                 break
 
             try:
-                # Make request
                 response = await self._client.get(url)
                 response.raise_for_status()
                 response_data = response.json()
@@ -86,7 +75,7 @@ class NewsApiClient(BaseNewsApiClient):
                     break
 
                 # Convert to domain objects
-                page_articles = self._mapper.to_domain_articles(articles_data)
+                page_articles = self._mapper.map_to_articles(articles_data, provider=self.provider_id)
                 all_articles.extend(page_articles)
 
                 logger.info(
@@ -116,9 +105,9 @@ class NewsApiClient(BaseNewsApiClient):
                 break
 
         logger.info(f"Total articles fetched: {len(all_articles)}")
-        return all_articles[:max_results] if max_results else all_articles
+        return all_articles
 
-    def _build_url(
+    def _build_request_url(
             self,
             page: int,
             page_size: int,
@@ -133,7 +122,6 @@ class NewsApiClient(BaseNewsApiClient):
             page_size: Results per page (max 100)
             from_date: Start date
             to_date: End date
-            language: Language code
 
         Returns:
             Complete URL with query parameters
@@ -142,7 +130,7 @@ class NewsApiClient(BaseNewsApiClient):
 
         params = {
             'apiKey': self._config.api_key,
-            'q': 'a',  # Broad search to get everything
+            'q': 'a',
             'from': from_date.strftime('%Y-%m-%dT%H:%M:%S'),
             'to': to_date.strftime('%Y-%m-%dT%H:%M:%S'),
             'sortBy': 'publishedAt',  # Get newest first
@@ -152,13 +140,3 @@ class NewsApiClient(BaseNewsApiClient):
 
         query_string = urlencode(params)
         return f"{base_url}?{query_string}"
-
-    async def fetch_articles(self) -> List[Article]:
-        """
-        Implement base class method - delegates to fetch_all_articles.
-
-        Returns:
-            All available articles
-        """
-        # Ignore criteria, just fetch everything from last 24 hours
-        return await self.fetch_all_articles()

@@ -1,17 +1,20 @@
+import logging
 from typing import Dict, Any, List, Optional
 import yaml
 import os
 from configs.api_config import ApiConfig
 from services.base.base_api_client import BaseNewsApiClient
-from services.clients.news_api.client import NewsApiOrgClient
+from services.clients.news_api.client import NewsApiClient
 from services.clients.news_api.mapper import NewsApiMapper
+
+logger = logging.getLogger(__name__)
 
 class ApiClientFactory:
     """Factory for creating configured API clients with their mappers"""
     
     # Registry of client types and their mappers
     CLIENT_REGISTRY = {
-        'newsapi': (NewsApiOrgClient, NewsApiMapper),
+        'newsapi': (NewsApiClient, NewsApiMapper),
         # Add more as: 'guardian': (GuardianClient, GuardianMapper),
     }
     
@@ -37,13 +40,19 @@ class ApiClientFactory:
     def create_client(provider_id: str, settings: Dict[str, Any]) -> Optional[BaseNewsApiClient]:
         """Create a single client with its mapper"""
         if provider_id not in ApiClientFactory.CLIENT_REGISTRY:
-            print(f"Unknown provider: {provider_id}")
+            logger.error(f"Unknown provider: {provider_id}")
             return None
         
         client_class, mapper_class = ApiClientFactory.CLIENT_REGISTRY[provider_id]
         
         # Replace environment variables in api_key
         api_key = settings.get('api_key', '')
+
+        if not api_key:
+            logger.error(f'API Key for provider: {provider_id} not found!')
+            logger.error(f'Provide the API key in the environment or deregister the API')
+            return None
+
         if api_key.startswith('${') and api_key.endswith('}'):
             env_var = api_key[2:-1]
             api_key = os.environ.get(env_var, '')

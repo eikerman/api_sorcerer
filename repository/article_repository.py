@@ -1,6 +1,5 @@
 from typing import List, Optional, Dict, Any
 import asyncpg
-from datetime import datetime
 from model.article import Article
 
 class ArticleRepository:

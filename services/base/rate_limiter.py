@@ -5,7 +5,6 @@ from typing import Dict, Any
 import calendar
 import json
 from pathlib import Path
-from datetime import date
 import logging
 from services.base.time_service import today
 logger = logging.getLogger(__name__)
@@ -43,19 +42,19 @@ class RateLimiter:
             "daily_count": 0,
             "monthly_count": 0,
             "total_count": 0,
-            "last_daily_reset": date.today().isoformat(),
-            "last_monthly_reset": date.today().strftime("%Y-%m")
+            "last_daily_reset": today().isoformat(),
+            "last_monthly_reset": today().strftime("%Y-%m")
         }
 
     @staticmethod
     def _reset_counters_if_needed(data: Dict[str, Any]):
         """Reset daily/monthly counters if date boundaries crossed"""
-        current_day = date.today()
+        current_day = today()
         current_month = today().strftime("%Y-%m")
 
-        if data["last_daily_reset"] != today().isoformat():
+        if data["last_daily_reset"] != current_day.isoformat():
             data["daily_count"] = 0
-            data["last_daily_reset"] = today().isoformat()
+            data["last_daily_reset"] = current_day.isoformat()
 
         if data["last_monthly_reset"] != current_month:
             data["monthly_count"] = 0
@@ -111,7 +110,11 @@ class RateLimiter:
                 logger.info(f"{self.provider_id}: Max total requests reached")
                 return False
 
-        # Check daily/monthly limits
+        if self.config.requests_per_month:
+            if not self._in_within_paced_limit():
+                logger.info(f"{self.provider_id}: Daily pacing limit reached")
+                return False
+
         if self.config.requests_per_day:
             if self._usage_data["daily_count"] >= self.config.requests_per_day:
                 logger.info(f"{self.provider_id}: Daily limit reached")
