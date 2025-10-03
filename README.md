@@ -1,4 +1,4 @@
-# News Aggregator
+# API Sorcerer
 
 A production-ready news article aggregation system that fetches articles from multiple news APIs, handles rate limiting, and stores deduplicated content in PostgreSQL.
 
@@ -16,7 +16,7 @@ A production-ready news article aggregation system that fetches articles from mu
 ## Architecture
 
 ```
-news-aggregator/
+api_sorcerer/
 ├── configs/
 │   ├── api_config.py          # API configuration dataclass
 │   └── config.yaml            # API provider settings
