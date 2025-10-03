@@ -5,14 +5,15 @@ from typing import Optional, Dict
 from services.article_service import ArticleService
 from repository.article_repository import ArticleRepository
 from services.base.time_service import get_time_service, close_time_service
+from dotenv import load_dotenv
 
+load_dotenv()
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('news_aggregator.log')
     ]
 )
 
@@ -24,7 +25,7 @@ def load_config() -> Dict[str, str]:
     config = {
         'db_host': os.environ.get('DB_HOST', 'localhost'),
         'db_port': os.environ.get('DB_PORT', '5432'),
-        'db_name': os.environ.get('DB_NAME', 'newsdb'),
+        'db_name': os.environ.get('DB_NAME', 'api_sorcerer'),
         'db_user': os.environ.get('DB_USER', 'user'),
         'db_password': os.environ.get('DB_PASSWORD', 'password'),
         'config_path': os.environ.get('CONFIG_PATH', 'configs/config.yaml')
