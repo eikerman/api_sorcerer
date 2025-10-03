@@ -59,23 +59,18 @@ class NewsApiClient(BaseNewsApiClient):
                 break
 
             try:
-                response = await self._client.get(url)
-                response.raise_for_status()
+
+                response = await self._make_request(url)
                 response_data = response.json()
 
                 # Record the API call
                 self._rate_limiter.record_request()
 
                 # Parse response
-                articles_data = response_data.get('articles', [])
                 total_results = response_data.get('totalResults', 0)
 
-                if not articles_data:
-                    logger.info(f"No more articles on page {page}")
-                    break
-
                 # Convert to domain objects
-                page_articles = self._mapper.map_to_articles(articles_data, provider=self.provider_id)
+                page_articles = self._mapper.map_to_articles(response_data, provider=self.provider_id)
                 all_articles.extend(page_articles)
 
                 logger.info(
@@ -90,7 +85,7 @@ class NewsApiClient(BaseNewsApiClient):
 
                 # Check if there are more pages
                 # NewsAPI returns empty array when no more results
-                if len(articles_data) < page_size:
+                if len(page_articles) < page_size:
                     logger.info(f"Received partial page, no more results available")
                     break
 

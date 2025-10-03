@@ -17,13 +17,26 @@ class ApiClientFactory:
         'newsapi': (NewsApiClient, NewsApiMapper),
         # Add more as: 'guardian': (GuardianClient, GuardianMapper),
     }
-    
+
+    @staticmethod
+    def _validate_config(config_data: Dict[str, Dict[str, Any]]) -> None:
+        if 'apis' not in config_data:
+            raise ValueError("Config must contain 'apis' key")
+
+        for provider, settings in config_data['apis'].items():
+            required = ['enabled', 'api_key', 'base_url']
+            missing = [k for k in required if k not in settings]
+            if missing:
+                raise ValueError(f"Provider {provider} missing: {missing}")
+
     @staticmethod
     def create_from_config(config_path: str) -> List[BaseNewsApiClient]:
         """Create all enabled clients from config file"""
         with open(config_path, 'r') as f:
             config_data = yaml.safe_load(f)
-        
+
+        ApiClientFactory._validate_config(config_data)
+
         clients = []
         
         for provider_id, settings in config_data.get('apis', {}).items():

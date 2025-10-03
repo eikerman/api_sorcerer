@@ -6,13 +6,14 @@ import calendar
 import json
 from pathlib import Path
 import logging
+from typing import Optional
 from services.base.time_service import today
 logger = logging.getLogger(__name__)
 
 class RateLimiter:
     """Simple rate limiter with persistent usage tracking"""
 
-    def __init__(self, provider_id: str, config: 'ApiConfig'):
+    def __init__(self, provider_id: str, config: 'ApiConfig', usage_dir: Optional[Path] = None):
         self.provider_id = provider_id
         self.config = config
 
@@ -20,7 +21,7 @@ class RateLimiter:
         self._request_times = deque()
 
         # Usage tracking
-        self.storage_dir = Path("./usage_data")
+        self.storage_dir = usage_dir if usage_dir else Path("./usage_data")
         self.storage_dir.mkdir(exist_ok=True)
         self.usage_file = self.storage_dir / f"{provider_id}_usage.json"
         self._usage_data = self._load_usage()
