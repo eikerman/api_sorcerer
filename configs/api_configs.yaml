@@ -9,4 +9,4 @@ apis:
       requests_per_month: 2000
     timeout: 30
     max_total_requests: 2000 # optional can be none
-    hard_stop_date: 2025-10-30 # optional can be none
+    hard_stop_date:

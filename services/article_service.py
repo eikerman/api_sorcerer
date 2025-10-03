@@ -14,13 +14,13 @@ class ArticleService:
         self.clients = ApiClientFactory.create_from_config(config_path)
         print(f"Initialized with {len(self.clients)} active API clients")
 
-    async def fetch_articles(self, query: str) -> int:
+    async def fetch_articles(self) -> int:
         """
         Fetch articles from all enabled APIs and store them.
         Returns count of new articles stored.
         """
         # Fetch from all APIs concurrently
-        tasks = [client.fetch_articles(query) for client in self.clients]
+        tasks = [client.fetch_articles() for client in self.clients]
         results = await asyncio.gather(*tasks)
 
         # Flatten results

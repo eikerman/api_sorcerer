@@ -27,7 +27,7 @@ class NewsApiClient(BaseNewsApiClient):
     def provider_id(self) -> str:
         return "newsapi.org"
 
-    async def fetch_articles(self, query: str) -> List[Article]:
+    async def fetch_articles(self) -> List[Article]:
         """
         Fetch all articles with automatic pagination.
 

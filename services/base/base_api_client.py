@@ -29,7 +29,7 @@ class BaseNewsApiClient(ABC):
         return response
 
     @abstractmethod
-    async def fetch_articles(self, query: str) -> List[Article]:
+    async def fetch_articles(self) -> List[Article]:
         pass
 
     async def close(self):

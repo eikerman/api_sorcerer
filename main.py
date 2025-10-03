@@ -84,12 +84,10 @@ async def initialize_article_service(config_path: str, repo: ArticleRepository) 
         return None
 
 
-async def fetch_and_store_articles(service: ArticleService, query: str) -> int:
+async def fetch_and_store_articles(service: ArticleService) -> int:
     """Fetch articles and return count of new articles stored"""
-    logger.info(f"Starting article fetch for query: '{query}'")
-
     try:
-        new_count = await service.fetch_articles(query)
+        new_count = await service.fetch_articles()
         logger.info(f"Successfully stored {new_count} new articles")
         return new_count
     except Exception as e:
@@ -195,7 +193,7 @@ async def main():
             return
 
         # Fetch articles
-        new_count = await fetch_and_store_articles(service, "technology")
+        new_count = await fetch_and_store_articles(service)
 
         # Log statistics
         await log_repository_stats(repo)
