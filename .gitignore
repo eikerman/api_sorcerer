@@ -1,2 +1,4 @@
 .idea/
-
+logins.yaml
+.env
+*__pycache__*
